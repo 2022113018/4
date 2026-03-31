@@ -18,7 +18,7 @@ SITE1_URL = "https://www.ka-yo.com/hk/en/l/arcteryx"
 SITE2_BASE = "https://www.vallgatan12.se/en/trademarks/arcteryx"
 SITE3_BASE = "https://graduatestore.fr/en/276_arc-teryx"
 SCKEY = "SCT331318TSk5BqvWCkOUvmCaxQo1X1NST"
-CHECK_INTERVAL = 1800  # 30分钟
+CHECK_INTERVAL = 180  # 30分钟
 # ==================================================
 
 # Streamlit 页面初始化
