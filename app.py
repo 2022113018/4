@@ -17,8 +17,8 @@ from selenium.webdriver.support import expected_conditions as EC
 SITE1_URL = "https://www.ka-yo.com/hk/en/l/arcteryx"
 SITE2_BASE = "https://www.vallgatan12.se/en/trademarks/arcteryx"
 SITE3_BASE = "https://graduatestore.fr/en/276_arc-teryx"
-SCKEY = st.secrets.get("SCKEY", "")
-CHECK_INTERVAL = 180  # 30分钟
+SCKEY = "SCT330540T5Ji2UsRwefqa5t4Wkm1tNNKg"
+CHECK_INTERVAL = 180  # 3分钟
 
 CSV_KAYO = "arcteryx_kayo.csv"
 CSV_VALL = "arcteryx_vall.csv"
@@ -26,9 +26,9 @@ CSV_GRAD = "arcteryx_grad.csv"
 
 st.set_page_config(page_title="ARCTERYX 监控", layout="wide")
 st.title("ARCTERYX 三网站自动监控 🔍")
-st.caption("GitHub + Streamlit 24小时云端运行版 | 上新自动微信推送")
+st.caption("24小时云端运行 | 上新微信推送")
 
-# ------------------- 初始化 session_state 必须放在最前面 -------------------
+# 初始化状态
 if "running" not in st.session_state:
     st.session_state.running = False
 if "log" not in st.session_state:
@@ -89,13 +89,13 @@ def log(msg):
     st.session_state.log.append(full)
     print(full)
 
-# ===================== 爬虫逻辑 =====================
+# ===================== 爬虫 =====================
 def get_browser_page(url):
     options = Options()
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
@@ -110,7 +110,7 @@ def get_browser_page(url):
             EC.element_to_be_clickable((By.CSS_SELECTOR, "a.ca-list-pagination__button--next"))
         )
         driver.execute_script("arguments[0].click();", load_more)
-        log("✅ KAYO 已点击加载更多")
+        log("✅ KAYO 点击加载更多")
         time.sleep(8)
     except:
         log("ℹ️ KAYO 无需加载更多")
@@ -135,7 +135,7 @@ def crawl_kayo():
                 href = info_a.get("href", "")
                 full_url = "https://www.ka-yo.com" + href
                 products.append((name, price, full_url))
-        log(f"✅ KAYO 抓取完成：{len(products)} 件")
+        log(f"KAYO 抓取：{len(products)} 件")
         return products
     except Exception as e:
         log(f"❌ KAYO 错误：{e}")
@@ -146,15 +146,13 @@ def crawl_vall():
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option("useAutomationExtension", False)
     driver = webdriver.Chrome(options=options)
     all_items = []
     page = 1
     while True:
         url = SITE2_BASE if page == 1 else f"{SITE2_BASE}?page={page}"
-        log(f"📄 正在爬取 vall 第 {page} 页")
+        log(f"vall 第 {page} 页")
         driver.get(url)
         time.sleep(2)
         solve_checkbox_verify(driver)
@@ -174,7 +172,7 @@ def crawl_vall():
             full_url = href if href.startswith("http") else "https://www.vallgatan12.se" + href
             all_items.append((name, price, full_url))
             current += 1
-        log(f"✅ 第 {page} 页：{current} 件")
+        log(f"本页 {current} 件")
         if current == 0:
             break
         page += 1
@@ -187,18 +185,13 @@ def crawl_graduate():
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option("useAutomationExtension", False)
     driver = webdriver.Chrome(options=options)
     all_items = []
     page = 1
     while True:
         url = SITE3_BASE if page == 1 else f"{SITE3_BASE}?page={page}"
-        log(f"📄 正在爬取 graduate 第 {page} 页")
+        log(f"graduate 第 {page} 页")
         driver.get(url)
-        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         time.sleep(2)
         solve_checkbox_verify(driver)
         time.sleep(3)
@@ -221,7 +214,7 @@ def crawl_graduate():
             if prod_url:
                 all_items.append((full_name, price, prod_url))
                 current += 1
-        log(f"✅ 第 {page} 页：{current} 件")
+        log(f"本页 {current} 件")
         if current == 0:
             break
         page += 1
@@ -231,22 +224,22 @@ def crawl_graduate():
 
 # ===================== 统一处理 =====================
 def process_site(site_name, csv_file, crawl_func):
-    log(f"\n===== 开始处理：{site_name} =====")
+    log(f"\n===== {site_name} =====")
     init_csv(csv_file)
     existed_urls = load_existed_urls(csv_file)
     current_products = crawl_func()
     new_products = [p for p in current_products if p[2] not in existed_urls]
-    log(f"📊 历史：{len(existed_urls)} | 本次：{len(current_products)} | 新增：{len(new_products)}")
+    log(f"历史：{len(existed_urls)} | 本次：{len(current_products)} | 新增：{len(new_products)}")
     if new_products:
         content = ""
         for idx, (name, price, url) in enumerate(new_products, 1):
-            content += f"{idx}. {name}\n💰 价格：{price}\n🔗 链接：{url}\n\n"
+            content += f"{idx}. {name}\n价格：{price}\n链接：{url}\n\n"
         push(site_name, f"上新 {len(new_products)} 件", content)
         append_to_csv(csv_file, new_products)
     else:
         log(f"ℹ️ {site_name} 暂无上新")
 
-# ===================== 后台任务 =====================
+# ===================== 后台循环 =====================
 def background_task():
     while st.session_state.get("running", False):
         try:
@@ -255,15 +248,13 @@ def background_task():
             process_site("KAYO", CSV_KAYO, crawl_kayo)
             process_site("vallgatan12", CSV_VALL, crawl_vall)
             process_site("GraduateStore", CSV_GRAD, crawl_graduate)
-            log(f"\n⏳ 等待 {CHECK_INTERVAL//60} 分钟后继续...")
-
-            # 分段sleep，防止卡死
+            log(f"\n⏳ 等待 3 分钟后继续...")
             for _ in range(CHECK_INTERVAL):
-                if not st.session_state.get("running", False):
+                if not st.session_state.get("running"):
                     return
                 time.sleep(1)
         except Exception as e:
-            log(f"⚠️ 监控异常：{str(e)}")
+            log(f"异常：{e}")
             time.sleep(60)
 
 # ===================== 界面 =====================
@@ -273,13 +264,13 @@ with col1:
         if not st.session_state.running:
             st.session_state.running = True
             threading.Thread(target=background_task, daemon=True).start()
-            st.success("✅ 监控已启动（后台24小时运行）")
+            st.success("监控已启动 24小时运行")
 with col2:
     if st.button("⏹ 停止监控"):
         st.session_state.running = False
-        st.warning("⏹ 监控已停止")
+        st.warning("监控已停止")
 
-st.subheader("实时运行日志")
-log_container = st.empty()
-with log_container:
-    st.code("\n".join(st.session_state.log[-100:]), language="text")
+st.subheader("实时日志")
+log_box = st.empty()
+with log_box:
+    st.code("\n".join(st.session_state.log[-100:]))
