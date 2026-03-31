@@ -17,7 +17,7 @@ from selenium.webdriver.support import expected_conditions as EC
 SITE1_URL = "https://www.ka-yo.com/hk/en/l/arcteryx"
 SITE2_BASE = "https://www.vallgatan12.se/en/trademarks/arcteryx"
 SITE3_BASE = "https://graduatestore.fr/en/276_arc-teryx"
-SCKEY = "SCT331318TSk5BqvWCkOUvmCaxQo1X1NST"
+SCKEY = "SCT330540T5Ji2UsRwefqa5t4Wkm1tNNKg"
 CHECK_INTERVAL = 180  # 30分钟
 # ==================================================
 
